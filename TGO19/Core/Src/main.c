@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
@@ -31,7 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define MAX_ADC_VAL 0x3FFF
+#define ADC_THRESHOLD 0x7F
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,7 +48,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim14;
 
 /* USER CODE BEGIN PV */
-uint16_t i = 0, Adc_Result[4];
+
 
 /* USER CODE END PV */
 
@@ -75,6 +77,10 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	ADC_ChannelConfTypeDef ADC_CH_Cfg = {0};
+	uint16_t joystick_lr = 0;
+	uint16_t joystick_fb = 0;
+	uint16_t joystick_ob = 0;
+
 
   /* USER CODE END 1 */
 
@@ -124,20 +130,73 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	for(i = 0; i < 3; i++)
-	{
-		uint32_t ADC_Channels[4] = {ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_8};
-		ADC_CH_Cfg.Channel = ADC_Channels[i];         // Select The ADC Channel [i]
+
+		ADC_CH_Cfg.Channel = ADC_CHANNEL_6;         // Select The ADC Channel [i]
 		HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);   // Configure The Selected ADC Channel
 		HAL_ADC_Start(&hadc1);                        // Start ADC Conversion @ Selected Channel
 		HAL_ADC_PollForConversion(&hadc1, 1);         // Poll The ADC Channel With TimeOut = 1mSec
-		Adc_Result[i] = HAL_ADC_GetValue(&hadc1);         // Read The ADC Conversion Result
-	}
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0x1000);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0x3000);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0x5000);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0x8000);
-	__HAL_TIM_SET_COMPARE(&htim14, TIM_CHANNEL_1, 0x5000);
+		joystick_lr = HAL_ADC_GetValue(&hadc1);         // Read The ADC Conversion Result
+
+		ADC_CH_Cfg.Channel = ADC_CHANNEL_7;         // Select The ADC Channel [i]
+		HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);   // Configure The Selected ADC Channel
+		HAL_ADC_Start(&hadc1);                        // Start ADC Conversion @ Selected Channel
+		HAL_ADC_PollForConversion(&hadc1, 1);         // Poll The ADC Channel With TimeOut = 1mSec
+		joystick_fb = HAL_ADC_GetValue(&hadc1);         // Read The ADC Conversion Result
+
+		ADC_CH_Cfg.Channel = ADC_CHANNEL_8;         // Select The ADC Channel [i]
+		HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);   // Configure The Selected ADC Channel
+		HAL_ADC_Start(&hadc1);                        // Start ADC Conversion @ Selected Channel
+		HAL_ADC_PollForConversion(&hadc1, 1);         // Poll The ADC Channel With TimeOut = 1mSec
+		joystick_ob = HAL_ADC_GetValue(&hadc1);         // Read The ADC Conversion Result
+
+		//LEFT RIGHT
+		if (joystick_lr > (MAX_ADC_VAL / 2) + ADC_THRESHOLD)
+		{
+			uint16_t diff = (joystick_lr - (MAX_ADC_VAL / 2)) * 8;
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, diff);
+		}
+		else if (joystick_lr < (MAX_ADC_VAL / 2) - ADC_THRESHOLD)
+		{
+			uint16_t diff = ((MAX_ADC_VAL / 2) - joystick_lr) * 8;
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, diff);
+		}
+		else
+		{
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+		}
+
+		//FORWARD BACKWARD
+		if (joystick_fb > (MAX_ADC_VAL / 2) + ADC_THRESHOLD)
+		{
+			uint16_t diff = (joystick_fb - (MAX_ADC_VAL / 2)) * 8;
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, diff);
+		}
+		else if (joystick_fb < (MAX_ADC_VAL / 2) - ADC_THRESHOLD)
+		{
+			uint16_t diff = ((MAX_ADC_VAL / 2) - joystick_fb) * 8;
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, diff);
+		}
+		else
+		{
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+		}
+
+		//BUZZER
+		if (HAL_GPIO_ReadPin(Joystick_sw_GPIO_Port, Joystick_sw_Pin) == false)
+		{
+			uint16_t diff = joystick_ob * 2;
+			__HAL_TIM_SET_COMPARE(&htim14, TIM_CHANNEL_1, MAX_ADC_VAL * 5 + diff);
+		}
+		else
+		{
+			__HAL_TIM_SET_COMPARE(&htim14, TIM_CHANNEL_1, 0);
+		}
   }
   /* USER CODE END 3 */
 }
@@ -441,11 +500,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin : PA5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  /*Configure GPIO pin : Joystick_sw_Pin */
+  GPIO_InitStruct.Pin = Joystick_sw_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Joystick_sw_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;

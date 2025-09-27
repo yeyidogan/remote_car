@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define Joystick_sw_Pin GPIO_PIN_5
+#define Joystick_sw_GPIO_Port GPIOA
 #define Swdio_Pin GPIO_PIN_13
 #define Swdio_GPIO_Port GPIOA
 #define Swclk_Pin GPIO_PIN_14
