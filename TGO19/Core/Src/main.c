@@ -34,6 +34,8 @@
 /* USER CODE BEGIN PD */
 #define MAX_ADC_VAL 0x3FFF
 #define ADC_THRESHOLD 0x7F
+#define ADC_JS_MIDDLE_POINT 0x21A0
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -150,15 +152,15 @@ int main(void)
 		joystick_ob = HAL_ADC_GetValue(&hadc1);         // Read The ADC Conversion Result
 
 		//LEFT RIGHT
-		if (joystick_lr > (MAX_ADC_VAL / 2) + ADC_THRESHOLD)
+		if (joystick_lr > (ADC_JS_MIDDLE_POINT + ADC_THRESHOLD))
 		{
-			uint16_t diff = (joystick_lr - (MAX_ADC_VAL / 2)) * 8;
+			uint16_t diff = (joystick_lr - ADC_JS_MIDDLE_POINT) * 8;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, diff);
 		}
-		else if (joystick_lr < (MAX_ADC_VAL / 2) - ADC_THRESHOLD)
+		else if (joystick_lr < (ADC_JS_MIDDLE_POINT - ADC_THRESHOLD))
 		{
-			uint16_t diff = ((MAX_ADC_VAL / 2) - joystick_lr) * 8;
+			uint16_t diff = (ADC_JS_MIDDLE_POINT - joystick_lr) * 8;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, diff);
 		}
@@ -169,15 +171,15 @@ int main(void)
 		}
 
 		//FORWARD BACKWARD
-		if (joystick_fb > (MAX_ADC_VAL / 2) + ADC_THRESHOLD)
+		if (joystick_fb > (ADC_JS_MIDDLE_POINT + ADC_THRESHOLD))
 		{
 			uint16_t diff = (joystick_fb - (MAX_ADC_VAL / 2)) * 8;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, diff);
 		}
-		else if (joystick_fb < (MAX_ADC_VAL / 2) - ADC_THRESHOLD)
+		else if (joystick_fb < (ADC_JS_MIDDLE_POINT - ADC_THRESHOLD))
 		{
-			uint16_t diff = ((MAX_ADC_VAL / 2) - joystick_fb) * 8;
+			uint16_t diff = (ADC_JS_MIDDLE_POINT - joystick_fb) * 8;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, diff);
 		}
